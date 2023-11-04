@@ -18,12 +18,23 @@ from django.contrib import admin
 from django.urls import path, include
 from rest_framework import routers
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-from family_health_app.views import PatientViewset
+from family_health_app.views import PatientInscriptionViewset, PatientValidationViewset, PatientViewset, ProfileViewset, ReportViewset, ServiceViewset, UserViewset, PrestationViewset
 
 router = routers.SimpleRouter()
 router.register('patient', PatientViewset, basename='patient')
+router.register('patientInscription', PatientInscriptionViewset, basename='patientInscription')
+router.register('patientValidation', PatientValidationViewset, basename='patientValidation')
+router.register('profile', ProfileViewset, basename='profile')
+router.register('user', UserViewset, basename='user')
+router.register('prestation', PrestationViewset, basename='prestation')
+router.register('service', ServiceViewset, basename='service')
+router.register('report', ReportViewset, basename='report')
+
+
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include(router.urls)),
+    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 ]
