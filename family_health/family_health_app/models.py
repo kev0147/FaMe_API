@@ -12,6 +12,7 @@ class Profile(models.Model):
     #phone_number = models.PhoneNumberField_("")
 
 class Patient(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     GENDERs = [
         ("F", "female"),
         ("M", "male"),
