@@ -10,7 +10,7 @@ from django.contrib.auth.models import Permission, Group
 class ProfileNoUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = Profile
-        fields = ['name', 'firstname', 'phone_number', 'email', 'patient']
+        fields = ['name', 'firstname', 'phone_number', 'email', 'patient', 'doctor']
 
 
 
@@ -21,7 +21,13 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ['username', 'password', 'profile', 'user_permissions', 'groups']
     
     
-class UserInscriptionSerializer(serializers.ModelSerializer):
+class PatientUserInscriptionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['username', 'password']
+        #extra_kwargs = {'password': {'write_only': True}}
+    
+class DoctorUserInscriptionSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['username', 'password']
@@ -34,9 +40,9 @@ class UserInscriptionSerializer(serializers.ModelSerializer):
         if password:
             user.set_password(password)
             user.save()
-        patient_permission = Permission.objects.get(codename='patient_permission')
+        patient_permission = Permission.objects.get_or_create(codename='doctor_permission')
         user.user_permissions.add(patient_permission)
-        group = Group.objects.get(name='patient')
+        group = Group.objects.get_or_create(name='doctor')
         user.groups.add(group)
         
         return user
@@ -101,6 +107,11 @@ class ProfileNoUserSerializer(serializers.ModelSerializer):
         model = Profile
         fields = ['name', 'firstname', 'phone_number', 'email']
 
+class ProfileIdSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Profile
+        fields = ['id']
+
 class ProfileUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = Profile
@@ -117,26 +128,128 @@ class PatientValidationSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         user_data = {
             'username': str(instance.profile.phone_number),
-            'password': str(instance.profile.phone_number)  # For demo purposes,I have to improve password handling
+            'password': make_password(str(instance.profile.phone_number)) # For demo purposes,I have to improve password handling
         }
-        print(instance.profile)
-        user_serializer = UserInscriptionSerializer(data=user_data)
+        user = User.objects.create(**user_data)
+        user.groups.add(Group.objects.get(name='patient'))
+        user.user_permissions.add(Permission.objects.get(codename='patient_permission'))
         profile=instance.profile
-        if user_serializer.is_valid():
-            user = user_serializer.save()
-            print(f"{user} created successfully")
-            profile.user = user
-            profile.save()
-            print(f"{profile} updated successfully")
+        profile.user = user
+        profile.save()
+        print(f"{profile} updated successfully")
 
-            prestation = Prestation.objects.get(id=1)
-            service = Service(date=date.today(), patient=instance, prestation=prestation)
-            service.save()
+        prestation = Prestation.objects.get(id=1)
+        service = Service(date=date.today(), patient=instance, prestation=prestation)
+        service.save()
 
-            instance.validated = True
-            instance.save()
+        instance.validated = True
+        instance.save()
+
+        return instance
+
+    
+
+
+class DoctorSerializer(serializers.ModelSerializer):
+    profile = ProfileSerializer()
+    class Meta:
+        model = Doctor
+        fields = ['id', 'profile', 'validated', 'doctors_order_number']
+
+
+
+class PatientUpdateDoctorSerializer(serializers.ModelSerializer):
+    doctor = DoctorSerializer()
+    class Meta:
+        model = Patient
+        fields = ['doctor']
+
+    def update(self, instance, validated_data):
+        instance.doctor = validated_data.get('doctor', instance.doctor)
+        instance.save()
+        return instance
+
+#######################################################################################################
+
+class DoctorInscriptionSerializer(serializers.ModelSerializer):
+    profile = ProfilInscriptionSerializer()
+    class Meta:
+        model = Doctor
+        fields = ['profile', 'doctors_order_number']
+
+    def create(self, validated_data):
+        profile = validated_data.pop('profile')
+        serializer = ProfilInscriptionSerializer(data=profile)
+        if serializer.is_valid():
+            profile_instance = serializer.save()
+            print(f"{profile_instance} created successfully")
+            # instance contains the newly created object
         else:
-            print(user_serializer.errors)
+            # Handle serializer errors
+            print(serializer.errors)
+        
+        doctor = Doctor.objects.create(profile=profile_instance, validated=False, **validated_data)
+        return doctor 
+    
+
+class DoctorValidationSerializer(serializers.ModelSerializer):
+    profile = ProfileNoUserSerializer()
+    class Meta:
+        model = Patient
+        fields = ['profile']
+
+    def update(self, instance, validated_data):
+        user_data = {
+            'username': str(instance.profile.phone_number),
+            'password': make_password(str(instance.profile.phone_number)) # For demo purposes,I have to improve password handling
+        }
+        user = User.objects.create(**user_data)
+        user.groups.add(Group.objects.get(name='doctor'))
+        user.user_permissions.add(Permission.objects.get(codename='doctor_permission'))
+        profile=instance.profile
+        profile.user = user
+        profile.save()
+        print(f"{profile} updated successfully")
+
+        
+        #prestation = Prestation.objects.get(id=1)
+        #service = Service(date=date.today(), patient=instance, prestation=prestation)
+        #service.save()
+        
+
+        instance.validated = True
+        instance.save()
 
         return instance
     
+
+########################################################################################################
+class MessageSerializer(serializers.ModelSerializer):
+    sender_id = serializers.IntegerField()
+    receiver_id = serializers.IntegerField()
+    class Meta:
+        model = Message
+        fields = [ 'sender_id', 'receiver_id', 'file_path']
+
+    def create(self, validated_data):
+        sender_id = validated_data.pop('sender_id')
+        receiver_id = validated_data.pop('receiver_id')
+
+        sender_profile = Profile.objects.get(id=sender_id)
+        receiver_profile = Profile.objects.get(id=receiver_id)
+
+        message = Message.objects.create(
+            date=date.today(),
+            sender=sender_profile,
+            receiver=receiver_profile,
+            file_path=validated_data.get('file_path')
+        )
+
+        return message
+    
+class ProfileMessagesSerializer(serializers.ModelSerializer):
+    messages_sent = MessageSerializer(many=True)
+    messages_received = MessageSerializer(many = True)
+    class Meta:
+        model = Profile
+        fields = ['id','user' ,'name', 'firstname', 'phone_number', 'messages_sent', 'messages_received']

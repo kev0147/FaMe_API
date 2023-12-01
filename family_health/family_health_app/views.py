@@ -7,7 +7,7 @@ from django.contrib.auth.models import User
 from rest_framework.permissions import IsAuthenticated
 from .permissions import IsAdminAuthenticated, IsPatientAuthenticated
 from .models import *
-from .serializers import PatientInscriptionSerializer, PatientValidationSerializer, PatientSerializer, UserSerializer, PrestationSerializer, ServiceSerializer, ReportSerializer, ProfileSerializer
+from .serializers import MessageSerializer, PatientInscriptionSerializer, PatientValidationSerializer, PatientSerializer, ProfileMessagesSerializer, UserSerializer, PrestationSerializer, ServiceSerializer, ReportSerializer, ProfileSerializer, DoctorInscriptionSerializer, DoctorValidationSerializer, DoctorSerializer
 
 
 class PatientInscriptionViewset(ModelViewSet):
@@ -84,3 +84,35 @@ class ServiceViewset(ModelViewSet):
 class ReportViewset(ModelViewSet):
     serializer_class = ReportSerializer
     queryset = Report.objects.all()
+
+
+
+class DoctorInscriptionViewset(ModelViewSet):
+    serializer_class = DoctorInscriptionSerializer
+    queryset = Doctor.objects.all()
+
+class DoctorValidationViewset(ModelViewSet):
+    serializer_class = DoctorValidationSerializer
+    queryset = Doctor.objects.all()
+
+class NonValidatedDoctorViewset(ModelViewSet):
+    #permission_classes = [IsAdminAuthenticated]
+    serializer_class = DoctorSerializer
+    queryset = Doctor.objects.filter(validated=False)
+
+class ValidatedDoctorViewset(ModelViewSet):
+    serializer_class = DoctorSerializer
+    queryset = Doctor.objects.filter(validated=True)
+
+class DoctorViewset(ModelViewSet):
+    serializer_class = DoctorSerializer
+    queryset = Doctor.objects.all()
+
+
+class MessagesViewset(ModelViewSet):
+    serializer_class = MessageSerializer
+    queryset = Message.objects.all()
+
+class ProfileMessagesViewset(ModelViewSet):
+    serializer_class = ProfileMessagesSerializer
+    queryset = Profile.objects.all()
