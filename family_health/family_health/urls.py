@@ -18,36 +18,15 @@ from django.contrib import admin
 from django.urls import path, include
 from rest_framework import routers
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-from family_health_app.views import GetPatientFromTokenViewset, MessagesViewset, NonValidatedDoctorViewset, NonValidatedPatientViewset, PatientInscriptionViewset, PatientValidationViewset, PatientViewset, ProfileViewset, ReportViewset, ServiceViewset, UserViewset, PrestationViewset, DoctorViewset, DoctorInscriptionViewset, DoctorValidationViewset, ProfileMessagesViewset
-
-router = routers.SimpleRouter()
-router.register('patient', PatientViewset, basename='patient')
-router.register('patientInscription', PatientInscriptionViewset, basename='patientInscription')
-router.register('patientValidation', PatientValidationViewset, basename='patientValidation')
-router.register('profile', ProfileViewset, basename='profile')
-router.register('user', UserViewset, basename='user')
-router.register('prestation', PrestationViewset, basename='prestation')
-router.register('service', ServiceViewset, basename='service')
-router.register('report', ReportViewset, basename='report')
-router.register('nonValidatedpatients', NonValidatedPatientViewset, basename='nonValidatedpatients')
-router.register('getPatientFromToken', GetPatientFromTokenViewset, basename='getPatientFromToken')
-
-router.register('doctor', DoctorViewset, basename='doctor')
-router.register('doctorInscription', DoctorInscriptionViewset, basename='doctorInscription')
-router.register('doctorValidation', DoctorValidationViewset, basename='doctorValidation')
-router.register('nonValidateddoctors', NonValidatedDoctorViewset, basename='nonValidateddoctors')
-
-router.register('messages', MessagesViewset, basename='messages')
-router.register('profileMessages', ProfileMessagesViewset, basename= 'profileMessages')
 
 
 
 
 
 urlpatterns = [
+    path('', include('application.urls')),
     path('admin/', admin.site.urls),
-    path('api/', include(router.urls)),
-    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    #path('', include('family_health_app.urls')),
+    path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 ]
-

@@ -14,6 +14,7 @@ class Profile(models.Model):
     #phone_number = models.PhoneNumberField_("")
 
 class Doctor(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     profile = models.OneToOneField(Profile, related_name='doctor', on_delete=models.CASCADE, blank=True)
     doctors_order_number = models.CharField(max_length=50)
     speciality = models.CharField(max_length=50, default='generalist')
@@ -29,7 +30,7 @@ class Patient(models.Model):
     gender = models.CharField(max_length=1, choices=GENDERs)
     profile = models.OneToOneField(Profile, related_name='patient', on_delete=models.CASCADE, blank=True)
     validated = models.BooleanField(default=False)
-    doctor = models.ForeignKey(Doctor, on_delete=models.CASCADE, null=True)
+    doctor = models.ForeignKey(Doctor, related_name='patients', on_delete=models.CASCADE, null=True)
 
 class Prestation(models.Model):
     prestation = models.CharField(max_length=50)

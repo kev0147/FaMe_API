@@ -7,7 +7,8 @@ from django.contrib.auth.models import User
 from rest_framework.permissions import IsAuthenticated
 from .permissions import IsAdminAuthenticated, IsPatientAuthenticated
 from .models import *
-from .serializers import MessageSerializer, PatientInscriptionSerializer, PatientValidationSerializer, PatientSerializer, ProfileMessagesSerializer, UserSerializer, PrestationSerializer, ServiceSerializer, ReportSerializer, ProfileSerializer, DoctorInscriptionSerializer, DoctorValidationSerializer, DoctorSerializer
+from .serializers import MessageSerializer, PatientInscriptionSerializer, PatientToDoctorAttributionSerializer, PatientValidationSerializer, PatientSerializer, ProfileMessagesSerializer, UserSerializer, PrestationSerializer, ServiceSerializer, ReportSerializer, ProfileSerializer, DoctorInscriptionSerializer, DoctorValidationSerializer, DoctorSerializer
+from rest_framework.decorators import action
 
 
 class PatientInscriptionViewset(ModelViewSet):
@@ -116,3 +117,32 @@ class MessagesViewset(ModelViewSet):
 class ProfileMessagesViewset(ModelViewSet):
     serializer_class = ProfileMessagesSerializer
     queryset = Profile.objects.all()
+
+class PatientToDoctorAttributionViewset(ModelViewSet):
+    serializer_class = PatientToDoctorAttributionSerializer
+    queryset = Patient.objects.all()
+
+
+
+class PatientViewSet(ModelViewSet):
+    queryset = Patient.objects.all()
+    serializer_class = PatientSerializer
+    
+    @action(methods=["put"], url_path=r'attribuer_docteur',detail=False)
+    def attribuer_docteur(self, request, *args, **kwargs):
+        id_doctor = self.request.query_params.get('id_doctor', None)
+        id_patient = self.request.query_params.get('id_patient', None)
+        if(id_doctor and id_patient):
+            try:
+                patient =Patient.objects.get(pk=id_patient)
+            except Patient.DoesNotExist:
+                return Response({'error': 'Patient non trouvé.'}, status=status.HTTP_400_BAD_REQUEST)
+            try:
+                doctor =Doctor.objects.get(pk=id_doctor)
+            except Doctor.DoesNotExist:
+                return Response({'error': 'Docteur non trouvé.'}, status=status.HTTP_400_BAD_REQUEST)
+            patient.doctor = doctor
+            patient.save()
+            return Response(PatientSerializer(patient).data, status=status.HTTP_200_OK)
+        else:
+            return Response({'error': 'Mauvaise requ......'}, status=status.HTTP_400_BAD_REQUEST)

@@ -100,7 +100,12 @@ class PatientSerializer(serializers.ModelSerializer):
     profile = ProfileSerializer()
     class Meta:
         model = Patient
-        fields = ['id', 'profile', 'birth_date', 'gender', 'validated']
+        fields = ['id', 'profile', 'birth_date', 'gender', 'validated', 'doctor']
+
+class PatientIdSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Patient
+        fields = ['id']
 
 class ProfileNoUserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -120,10 +125,9 @@ class ProfileUserSerializer(serializers.ModelSerializer):
     
 #to validate a patient is to give him access to the services. To validate him: we make a put request with the id of the patient. retrieving this patient, we retrieve the profile object of that patient. create a user whose username and password will be the profile phone number. then w
 class PatientValidationSerializer(serializers.ModelSerializer):
-    profile = ProfileNoUserSerializer()
     class Meta:
         model = Patient
-        fields = ['profile']
+        fields = []
 
     def update(self, instance, validated_data):
         user_data = {
@@ -154,8 +158,13 @@ class DoctorSerializer(serializers.ModelSerializer):
     profile = ProfileSerializer()
     class Meta:
         model = Doctor
-        fields = ['id', 'profile', 'validated', 'doctors_order_number']
+        fields = ['id', 'profile', 'validated', 'doctors_order_number', 'patients']
 
+
+class DoctorIdSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Doctor
+        fields = ['id']
 
 
 class PatientUpdateDoctorSerializer(serializers.ModelSerializer):
@@ -193,10 +202,9 @@ class DoctorInscriptionSerializer(serializers.ModelSerializer):
     
 
 class DoctorValidationSerializer(serializers.ModelSerializer):
-    profile = ProfileNoUserSerializer()
     class Meta:
         model = Patient
-        fields = ['profile']
+        fields = []
 
     def update(self, instance, validated_data):
         user_data = {
@@ -253,3 +261,50 @@ class ProfileMessagesSerializer(serializers.ModelSerializer):
     class Meta:
         model = Profile
         fields = ['id','user' ,'name', 'firstname', 'phone_number', 'messages_sent', 'messages_received']
+
+
+class PatientToDoctorAttributionSerializer(serializers.ModelSerializer):
+    doctor = DoctorIdSerializer()
+    class Meta:
+        model = Patient
+        fields = '__all__'
+
+    def update(self, instance, validated_data):
+        doctor_data = validated_data.pop('doctor', None)
+
+        # Update patient fields
+        instance.birth_date = validated_data.get('birth_date', instance.birth_date)
+        instance.gender = validated_data.get('gender', instance.gender)
+        instance.validated = validated_data.get('validated', instance.validated)
+        instance.save()
+
+        if doctor_data:
+            # If doctor data is provided, update the associated doctor
+            doctor_instance = instance.doctor
+            if doctor_instance:
+                # If patient already has a doctor, update the doctor fields
+                doctor_serializer = DoctorSerializer(doctor_instance, data=doctor_data)
+            else:
+                # If patient does not have a doctor, create a new doctor
+                doctor_serializer = DoctorSerializer(data=doctor_data)
+
+            if doctor_serializer.is_valid():
+                doctor = doctor_serializer.save()
+                instance.doctor = doctor
+
+        return instance
+    
+class doctorAttributionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Doctor
+        fields = []
+
+    def update(self, instance, validated_data):
+        patient = PatientIdSerializer(data=validated_data)
+        patient.is_valid()
+        patient.save()
+        patients = instance.patients
+        patients.add(patient)
+        instance.save()
+        return instance
+
