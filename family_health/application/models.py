@@ -57,3 +57,9 @@ class Message(models.Model):
 
     def __str__(self):
         return self.date
+    
+class Appointment(models.Model):
+    patient = models.ForeignKey(Patient, on_delete=models.CASCADE)
+    date = models.DateField()
+    time = models.DateTimeField()
+    prestation = models.ForeignKey(Prestation, on_delete=models.CASCADE)

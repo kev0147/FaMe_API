@@ -20,7 +20,7 @@ class TestPatient(APITestCase):
     url = reverse_lazy('patients')
 
     # test: inscription
-    def test_inscription(self):
+    def test_inscription_patient(self):
         patient = {
             'profile':{
                 'name':'Gouabga', 
@@ -32,7 +32,7 @@ class TestPatient(APITestCase):
             'birth_date':'1986-02-03'
         }
         
-        response = self.client.post('/patients/inscription', patient, format='json')
+        response = self.client.post('/patientInscription/inscription', patient, format='json')
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         print(response.content)
@@ -44,7 +44,7 @@ class TestPatient(APITestCase):
         self.assertFalse(Patient.objects.get().validated)
         self.assertFalse(Patient.objects.get().doctor)
 
-    def test_validation(self):
+    def test_validation_patient(self):
         profile = Profile.objects.create(name='Gouabga', firstname='Kouka', email='lol@lol.lol', phone_number=70077558)
         patient = Patient.objects.create(profile=profile, gender='F', birth_date='1986-02-03')
         patient.save()

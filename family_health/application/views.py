@@ -63,10 +63,12 @@ class PatientViewSet(ModelViewSet):
         non_validated_patients = Patient.objects.filter(validated=False)
         return Response(PatientSerializer(non_validated_patients, many=True).data)
     
+
     @action(detail=False, methods=['get'])
     def validated_patients(self, request):
         validated_patients = Patient.objects.filter(validated=True)
         return Response(PatientSerializer(validated_patients, many=True).data)
+
 
     @action(detail=True, methods=['put'])
     def validation(self, request, pk):
@@ -77,11 +79,8 @@ class PatientViewSet(ModelViewSet):
 
         if(patient.validated):
             return Response(status=status.HTTP_208_ALREADY_REPORTED)
-        patient_serializer = PatientValidationSerializer(patient)
-        try:
-            patient_serializer.update(patient)
-        except:
-            raise ValidationError(patient_serializer.error_messages)
+        
+        patient = validate_patient(patient=patient)
         
         return Response(PatientSerializer(patient).data)
     
@@ -101,8 +100,8 @@ class PatientViewSet(ModelViewSet):
         return Response(PatientSerializer(patient).data)
     
     @action(detail=False, methods=['get'])
-    def get_patient_from_token(self):
-        user = self.request.user
+    def get_patient_from_token(self, request):
+        user = request.user
         try:
             profile = Profile.objects.get(user=user)
             patient = Patient.objects.get(profile=profile)
@@ -189,6 +188,12 @@ class ServiceViewSet(ModelViewSet):
     serializer_class = ServiceSerializer
     permission_classes = []
 
+class AppointmentViewSet(ModelViewSet):
+
+    queryset = Appointment.objects.all()
+    serializer_class = AppointmentSerializer
+    permission_classes = [IsAuthenticated]
+
 
 class MessageViewSet(ModelViewSet):
 
@@ -225,3 +230,27 @@ class MessageViewSet(ModelViewSet):
         
         messages = Message.objects.filter(Q(sender=profile) | Q(receiver=profile)).order_by('date')
         return Response(MessageSerializer(messages, many=True).data)
+
+
+def validate_patient(patient):
+    
+    user = User.objects.create(
+        username = str(patient.profile.phone_number),
+        password = make_password(str(patient.profile.phone_number))
+    )
+    
+    user.groups.add(Group.objects.get(name='patient'))
+    user.user_permissions.add(Permission.objects.get(codename='patient_permission'))
+
+    profile=patient.profile
+    profile.user = user
+    profile.save()
+    print(f" patient of profile:{profile} validated successfully")
+
+    prestation = Prestation.objects.get(id=1)
+    service = Service(date=date.today(), patient=patient, prestation=prestation)
+    service.save()
+
+    patient.validated = True
+    patient.save()
+    return patient
