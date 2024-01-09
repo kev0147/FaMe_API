@@ -1,0 +1,41 @@
+
+#to do before going production
+###############################################################################################
+
+
+from django.contrib.auth.models import Group, Permission
+from django.contrib.contenttypes.models import ContentType
+doctor_group, created = Group.objects.get_or_create(name='doctor')
+content_type = ContentType.objects.get_for_model(Permission)
+patient_permission, created = Permission.objects.get_or_create(
+     codename='doctor_permission',
+     name='Doctor Permission',
+     content_type=content_type,
+ )
+
+doctor_group.permissions.add(doctor_permission)
+doctor_group.save()
+
+
+from django.contrib.auth.models import Group, Permission
+from django.contrib.contenttypes.models import ContentType
+patient_group, created = Group.objects.get_or_create(name='patient')
+content_type = ContentType.objects.get_for_model(Permission)
+patient_permission, created = Permission.objects.get_or_create(
+     codename='patient_permission',
+     name='Patient Permission',
+     content_type=content_type,
+ )
+
+doctor_group.permissions.add(patient_permission)
+doctor_group.save()
+
+from family_health_app.models import Prestation
+prestation_data = {
+    "prestation": "inscription",
+    "price": 7000
+}
+prestation_instance = Prestation.objects.create(**prestation_data)
+prestation_instance.save()
+
+#################################################################################################
